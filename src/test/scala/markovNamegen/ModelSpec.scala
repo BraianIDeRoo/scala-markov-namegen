@@ -208,7 +208,7 @@ object ModelSpec extends DefaultRunnableSpec {
     }
   )
   override def spec: Spec[Random with TestRandom, TestFailure[Nothing], TestSuccess] =
-    suite("all")(
+    suite("all Models")(
       modelSuite2 @@ forked,
       modelSuite1 @@ forked
     ) @@ forked
