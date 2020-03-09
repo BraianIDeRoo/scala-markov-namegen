@@ -34,9 +34,27 @@ final class UniqueVector[+A] private (val length: Int, elems: Array[Any])
       elem
     }
   }
+
+  override def className = "UniqueVector"
+
   def apply(i: Int): A = elems(i).asInstanceOf[A]
 
+  def canEqual(a: Any): Boolean = a.isInstanceOf[UniqueVector[A]]
+
+  private val e = elems
+
+  override def equals(any: Any): Boolean =
+    any match {
+      case p: UniqueVector[A] => p.e.sameElements(e)
+      case _                  => false
+    }
+
   override val iterableFactory: IterableFactory[UniqueVector] = UniqueVector
+
+  override def hashCode(): Int = {
+    val state = Seq(e, iterableFactory, length)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
 }
 
 object UniqueVector extends IterableFactory[UniqueVector] {
