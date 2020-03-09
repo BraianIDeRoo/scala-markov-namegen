@@ -27,27 +27,35 @@ private[markovNamegen] class Generator private (
     if (prior == 0) foreachPar_(_models)(_.retrain(data))
     else _models.head.retrain(data)
 
-  def generate: ZIO[Random, Nothing, String] = {
+  def generate: ZIO[Random, Nothing, Option[String]] = {
     val word = "#" * order
-    def inner(word: String, letter: String): ZIO[Random, Nothing, String] =
-      if (letter == "#") succeed(word)
+
+    def aux(s: String): ZIO[Random, Nothing, Option[String]] =
+      for {
+        l <- getLetter(s)
+        res <- l match {
+                case Some(value) => inner(s, value)
+                case None        => succeed(Some(s))
+              }
+      } yield res
+
+    def inner(word: String, letter: String): ZIO[Random, Nothing, Option[String]] =
+      if (letter == "#")
+        if (word.isEmpty) none
+        else succeed(Some(word))
       else {
         val w = word + letter
-        for {
-          l <- getLetter(w)
-          res <- l match {
-                  case Some(value) => inner(w, value)
-                  case None        => succeed(w)
-                }
-        } yield res.replaceAll("#", "")
+        aux(w).map {
+          case Some(value) =>
+            val k = value.replace("#", "")
+            if (k.isEmpty) None
+            else Some(k)
+          case None => None
+        }
+
       }
-    for {
-      l <- getLetter(word)
-      res <- l match {
-              case Some(value) => inner(word, value)
-              case None        => succeed("")
-            }
-    } yield res
+
+    aux(word)
   }
 
   private def getLetter(context: String) = {

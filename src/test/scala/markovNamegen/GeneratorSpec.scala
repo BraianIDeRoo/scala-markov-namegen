@@ -33,14 +33,18 @@ object GeneratorSpec extends DefaultRunnableSpec {
       },
       testM("should always generate a word with prior") {
         for {
-          _   <- TestRandom.feedDoubles(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
-          g   <- Generator.make(testData, 0.01, 2)
-          res <- g.generate
+          _        <- TestRandom.feedDoubles(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+          g        <- Generator.make(testData, 0.01, 2)
+          maybeRes <- g.generate
+          res = maybeRes match {
+            case Some(value) => value
+            case None        => ""
+          }
         } yield assert(res.isEmpty)(isFalse) &&
           assert(res)(equalTo("f"))
       }
     )
 
   override def spec: ZSpec[_root_.zio.test.environment.TestEnvironment, Any] =
-    generatorSuite
+    generatorSuite @@ forked
 }
