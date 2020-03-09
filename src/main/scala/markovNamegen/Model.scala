@@ -6,16 +6,28 @@ import zio.ZIO._
 import zio.random.Random
 
 private[markovNamegen] class Model private (
-  alphabet: IndexedSeq[String],
-  prior: Double,
-  order: Int,
-  observations: Ref[Map[String, Ref[UniqueVector[String]]]],
-  chains: Ref[Map[String, Ref[Vector[Double]]]]
+  val alphabet: IndexedSeq[String],
+  val prior: Double,
+  val order: Int,
+  _observations: Ref[Map[String, Ref[UniqueVector[String]]]],
+  _chains: Ref[Map[String, Ref[Vector[Double]]]]
 ) {
+
+  def observations: ZIO[Any, Nothing, Map[String, UniqueVector[String]]] =
+    for {
+      o   <- _observations.get
+      res <- foreach(o)(a => a._2.get >>= (x => succeed(a._1, x)))
+    } yield res.toMap
+
+  def chains: ZIO[Any, Nothing, Map[String, Vector[Double]]] =
+    for {
+      c   <- _chains.get
+      res <- foreach(c)(a => a._2.get >>= (x => succeed(a._1, x)))
+    } yield res.toMap
 
   def generate(context: String): ZIO[Random, Nothing, Option[String]] =
     for {
-      maybeChain <- chains.get >>= (x => succeed(x.get(context)))
+      maybeChain <- _chains.get >>= (x => succeed(x.get(context)))
       res <- maybeChain match {
               case Some(ref) =>
                 for {
@@ -39,11 +51,11 @@ private[markovNamegen] class Model private (
   private def addObservation(d: String, i: Int) = {
     val key = d.substring(i, i + order)
     for {
-      maybeValue <- observations.get >>= (x => succeed(x.get(key)))
+      maybeValue <- _observations.get >>= (x => succeed(x.get(key)))
       value <- maybeValue match {
                 case Some(vector) => succeed(vector)
                 case None =>
-                  Ref.make[UniqueVector[String]](UniqueVector()).tap(x => observations.update(_ + (key -> x)))
+                  Ref.make[UniqueVector[String]](UniqueVector()).tap(x => _observations.update(_ + (key -> x)))
               }
       _ <- value.update(_ :+ d.charAt(i + order).toString)
     } yield ()
@@ -51,22 +63,22 @@ private[markovNamegen] class Model private (
 
   private def buildChains =
     for {
-      _    <- chains.set(Map())
-      keys <- observations.get >>= (obs => succeed(obs.keys))
+      _    <- _chains.set(Map())
+      keys <- _observations.get >>= (obs => succeed(obs.keys))
       _    <- foreach_(keys)(context => foreach_(alphabet)(prediction => buildContext(prediction, context)))
     } yield ()
 
   private def buildContext(prediction: String, context: String) =
     for {
-      maybeChain <- chains.get >>= (x => succeed(x.get(context)))
+      maybeChain <- _chains.get >>= (x => succeed(x.get(context)))
       value <- maybeChain match {
                 case Some(ref) => succeed(ref)
                 case None =>
                   Ref
                     .make[Vector[Double]](Vector())
-                    .tap(x => chains.update(_ + (context -> x)))
+                    .tap(x => _chains.update(_ + (context -> x)))
               }
-      arr <- observations.get >>= (x => succeed(x.get(context)))
+      arr <- _observations.get >>= (x => succeed(x.get(context)))
       matches <- arr match {
                   case Some(value) =>
                     value.get >>= (x => succeed(countMatches(x, prediction)))
