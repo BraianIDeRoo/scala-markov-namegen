@@ -1,5 +1,6 @@
 package markovNamegen
 
+import markovNamegen.util.UniqueVector
 import zio.{ random, Ref, ZIO }
 import zio.ZIO._
 import zio.random.Random
@@ -8,7 +9,7 @@ private[markovNamegen] class Model private (
   alphabet: IndexedSeq[String],
   prior: Double,
   order: Int,
-  observations: Ref[Map[String, Ref[Vector[String]]]],
+  observations: Ref[Map[String, Ref[UniqueVector[String]]]],
   chains: Ref[Map[String, Ref[Vector[Double]]]]
 ) {
 
@@ -41,7 +42,8 @@ private[markovNamegen] class Model private (
       maybeValue <- observations.get >>= (x => succeed(x.get(key)))
       value <- maybeValue match {
                 case Some(vector) => succeed(vector)
-                case None         => Ref.make[Vector[String]](Vector()).tap(x => observations.update(_ + (key -> x)))
+                case None =>
+                  Ref.make[UniqueVector[String]](UniqueVector()).tap(x => observations.update(_ + (key -> x)))
               }
       _ <- value.update(_ :+ d.charAt(i + order).toString)
     } yield ()
@@ -59,7 +61,10 @@ private[markovNamegen] class Model private (
       maybeChain <- chains.get >>= (x => succeed(x.get(context)))
       value <- maybeChain match {
                 case Some(ref) => succeed(ref)
-                case None      => Ref.make[Vector[Double]](Vector()).tap(x => chains.update(_ + (context -> x)))
+                case None =>
+                  Ref
+                    .make[Vector[Double]](Vector())
+                    .tap(x => chains.update(_ + (context -> x)))
               }
       arr <- observations.get >>= (x => succeed(x.get(context)))
       matches <- arr match {
@@ -70,7 +75,7 @@ private[markovNamegen] class Model private (
       _ <- value.update(_ :+ (prior + matches))
     } yield ()
 
-  private def countMatches[A](arr: Seq[A], v: A) =
+  private def countMatches[A](arr: Iterable[A], v: A) =
     arr.foldLeft(0)((a, b) =>
       b match {
         case s if s == v => a + 1
@@ -78,7 +83,7 @@ private[markovNamegen] class Model private (
       }
     )
 
-  private def selectIndex(chain: Seq[Double]) = {
+  private def selectIndex(chain: Iterable[Double]) = {
     val (totals, accumulator) =
       chain.foldLeft((Vector[Double](), 0d))((old, current) =>
         (
@@ -106,7 +111,7 @@ private[markovNamegen] class Model private (
 object Model {
   def make(alphabet: IndexedSeq[String], prior: Double, order: Int): ZIO[Any, Nothing, Model] =
     for {
-      observations <- Ref.make[Map[String, Ref[Vector[String]]]](Map())
+      observations <- Ref.make[Map[String, Ref[UniqueVector[String]]]](Map())
       chains       <- Ref.make[Map[String, Ref[Vector[Double]]]](Map())
     } yield new Model(alphabet, prior, order, observations, chains)
 }
