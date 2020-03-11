@@ -66,7 +66,7 @@ private[markovNamegen] class Generator private (
         case Nil          => none
         case model :: Nil => model.generate(ctx)
         case model :: others =>
-          model.generate(context) >>= {
+          model.generate(ctx) >>= {
             case Some(value) => succeed(Some(value))
             case None        => inner(others, ctx.drop(1))
           }
