@@ -1,6 +1,7 @@
 package markovNamegen
 
 import scala.util.matching.Regex
+import zio.UIO
 
 sealed trait GenerationOption
 
@@ -9,9 +10,17 @@ trait GroupGenerationOption extends GenerationOption {
   def check(elements: Seq[String]): Boolean
 }
 
+trait GroupGenerationOptionM extends GenerationOption {
+  def check(elements: Seq[String]): UIO[Boolean]
+}
+
 // if the option doesnt return true the generated string should be discarded
 trait SingleGenerationOption extends GenerationOption {
   def check(element: String): Boolean
+}
+
+trait SingleGenerationOptionM extends GenerationOption {
+  def check(element: String): UIO[Boolean]
 }
 
 case class Number(value: Int) extends GroupGenerationOption {
