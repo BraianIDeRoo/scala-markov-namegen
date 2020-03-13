@@ -2,6 +2,7 @@ package markovNamegen
 
 import zio.test._
 import Assertion._
+import markovNamegen.Smoothing.SmoothingF
 import zio.ZIO._
 import zio.random.Random
 import zio.test.environment.TestRandom
@@ -9,9 +10,9 @@ import zio.test.TestAspect.forked
 import zio.test.{ DefaultRunnableSpec, ZSpec }
 
 object GeneratorSpec extends DefaultRunnableSpec {
-  val testData: Vector[String]      = Vector("foo", "foobar", "ook")
-  val testAlphabet                  = IndexedSeq("a", "b", "f", "k", "o", "r", "#")
-  val testPriorSmoothing: Smoothing = PriorSmoothing(0.01)
+  val testData: Vector[String]       = Vector("foo", "foobar", "ook")
+  val testAlphabet                   = IndexedSeq("a", "b", "f", "k", "o", "r", "#")
+  val testPriorSmoothing: SmoothingF = Smoothing.priorSmoothing(0.01)
 
   val generatorSuite: Spec[Random with TestRandom, TestFailure[Nothing], TestSuccess] =
     suite("Generator")(

@@ -2,6 +2,7 @@ package markovNamegen
 
 import zio.test._
 import Assertion._
+import markovNamegen.Smoothing.SmoothingF
 import markovNamegen.util.UniqueVector
 import zio.random.Random
 import zio.test.environment.TestRandom
@@ -69,8 +70,8 @@ object ModelSpec extends DefaultRunnableSpec {
     "ar" -> Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
   )
-  val testPriorSmoothing: Smoothing = PriorSmoothing(0.1)
-  val testNoSmoothing: Smoothing    = NoSmoothing
+  val testPriorSmoothing: SmoothingF = Smoothing.priorSmoothing(0.1)
+  val testNoSmoothing: SmoothingF    = Smoothing.noSmoothing
 
   val modelSuite2: Spec[Random with TestRandom, TestFailure[Nothing], TestSuccess] =
     suite("Model order 2")(

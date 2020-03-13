@@ -1,5 +1,6 @@
 package markovNamegen
 
+import markovNamegen.Smoothing.SmoothingF
 import markovNamegen.util.UniqueVector
 import zio.ZIO
 import zio.ZIO._
@@ -8,13 +9,13 @@ import zio.random.Random
 private[markovNamegen] class Generator private (
   data: IndexedSeq[String],
   val order: Int,
-  val smoothing: Smoothing,
+  val smoothingF: SmoothingF,
   _models: List[Model],
   val alphabet: IndexedSeq[String]
 ) {
 
   def models: ZIO[Any, Nothing, List[
-    (Int, Smoothing, IndexedSeq[String], Map[String, UniqueVector[String]], Map[String, Vector[Double]])
+    (Int, SmoothingF, IndexedSeq[String], Map[String, UniqueVector[String]], Map[String, Vector[Double]])
   ]] =
     foreach(_models) { m =>
       for {
@@ -75,7 +76,7 @@ private[markovNamegen] class Generator private (
 }
 
 object Generator {
-  def make(data: IndexedSeq[String], smoothing: Smoothing, order: Int): ZIO[Any, Nothing, Generator] = {
+  def make(data: IndexedSeq[String], smoothingF: SmoothingF, order: Int): ZIO[Any, Nothing, Generator] = {
     val letters =
       data.flatMap(x => x.toList.map(_.toString)).sorted.distinct :+ "#"
 
@@ -83,11 +84,11 @@ object Generator {
       models <- foreach(0 until order)(x =>
                  Model.make(
                    letters.toVector,
-                   smoothing,
+                   smoothingF,
                    order - x
                  )
                )
-    } yield new Generator(data, order, smoothing, models, letters)
+    } yield new Generator(data, order, smoothingF, models, letters)
 
   }.tap(_.trainAll)
 }

@@ -1,16 +1,17 @@
 package markovNamegen
 
+import markovNamegen.Smoothing.SmoothingF
 import markovNamegen.util.UniqueVector
-import zio.{ random, Ref, ZIO }
 import zio.ZIO._
 import zio.random.Random
+import zio.{ random, Ref, ZIO }
 
 private[markovNamegen] class Model private (
   val alphabet: IndexedSeq[String],
   val order: Int,
   _observations: Ref[Map[String, Ref[UniqueVector[String]]]],
   _chains: Ref[Map[String, Ref[Vector[Double]]]],
-  val smoothing: Smoothing
+  val smoothing: SmoothingF
 ) {
 
   def observations: ZIO[Any, Nothing, Map[String, UniqueVector[String]]] =
@@ -66,7 +67,7 @@ private[markovNamegen] class Model private (
       _    <- _chains.set(Map())
       keys <- _observations.get >>= (obs => succeed(obs.keys))
       _    <- foreach_(keys)(context => foreach_(alphabet)(prediction => buildContext(prediction, context)))
-      _    <- smoothing.smooth(_observations, _chains)
+      _    <- smoothing.provide(_chains)
     } yield ()
 
   private def buildContext(prediction: String, context: String) =
@@ -122,9 +123,9 @@ private[markovNamegen] class Model private (
 }
 
 object Model {
-  def make(alphabet: IndexedSeq[String], smoothing: Smoothing, order: Int): ZIO[Any, Nothing, Model] =
+  def make(alphabet: IndexedSeq[String], smoothingF: SmoothingF, order: Int): ZIO[Any, Nothing, Model] =
     for {
       observations <- Ref.make[Map[String, Ref[UniqueVector[String]]]](Map())
       chains       <- Ref.make[Map[String, Ref[Vector[Double]]]](Map())
-    } yield new Model(alphabet, order, observations, chains, smoothing)
+    } yield new Model(alphabet, order, observations, chains, smoothingF)
 }
