@@ -9,6 +9,7 @@ package object markovNamegen {
   object StringGenerator {
     trait Service {
       def generate(
+        number: Int,
         groupOptions: List[GroupGenerationOption],
         perStringOptions: List[SingleGenerationOption]
       ): ZIO[Random, Nothing, List[String]]
@@ -34,13 +35,13 @@ package object markovNamegen {
           }
 
         override def generate(
+          number: Int,
           groupOptions: List[GroupGenerationOption],
           perStringOptions: List[SingleGenerationOption]
         ): ZIO[Random, Nothing, List[String]] =
           for {
             finishedJobs <- Ref.make[List[String]](List())
-            taskNumber   = groupOptions.collectFirst { case x: Number => x.value }.getOrElse(1)
-            _            <- foreachPar_(0 until taskNumber)(_ => tryTask(g.generate, perStringOptions, finishedJobs))
+            _            <- foreachPar_(0 until number)(_ => tryTask(g.generate, perStringOptions, finishedJobs))
             res          <- finishedJobs.get
           } yield res
       }
@@ -50,12 +51,13 @@ package object markovNamegen {
       ZLayer.fromEffect(liveF)
 
     def generate(
+      number: Int,
       groupOptions: List[GroupGenerationOption],
       perStringOptions: List[SingleGenerationOption]
     ): ZIO[Random with markovNamegen.StringGenerator, Nothing, List[String]] =
       for {
         generator <- ZIO.access[StringGenerator](x => x.get)
-        res       <- generator.generate(groupOptions, perStringOptions)
+        res       <- generator.generate(number, groupOptions, perStringOptions)
       } yield res
 
   }
