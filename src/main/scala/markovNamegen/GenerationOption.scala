@@ -55,7 +55,8 @@ case class Excludes(value: String) extends SingleGenerationOption {
   override def check(element: String): Boolean = !element.contains(value)
 }
 
-case class DamerauLevenshteinDistance(value: String, maxDistance: Int, enableTranspositions: Boolean)
+case class DamerauLevenshteinDistance(value: String, maxDistance: Int,
+                                      enableTranspositions: Boolean)
     extends SingleGenerationOptionM {
   import zio.Ref
   import zio.ZIO
@@ -91,9 +92,11 @@ case class DamerauLevenshteinDistance(value: String, maxDistance: Int, enableTra
                     ).min
                   )
                 ) <*> when(
-                  enableTranspositions && x > 1 && y > 1 && source.charAt(x) == target.charAt(y - 1) && source
+                  enableTranspositions && x > 1 && y > 1 && source.charAt(x)
+                    == target.charAt(y - 1) && source
                     .charAt(x - 1) == target.charAt(y)
-                )(costs.update(old => old.updated(x + y * w, List(old(x + y * w), old(x - 2 + ((y - 2) * w)) + c).min))).unit
+                )(costs.update(old => old.updated(x + y * w, List(old(x + y *
+                  w), old(x - 2 + ((y - 2) * w)) + c).min))).unit
               )
             }
           }
@@ -106,7 +109,8 @@ case class DamerauLevenshteinDistance(value: String, maxDistance: Int, enableTra
     else if (value.length == 0) succeed(element.length <= maxDistance)
     else
       for {
-        distance <- damerauLevenshteinMatrix(element, value, enableTranspositions) >>= (v => succeed(v(v.length - 1)))
+        distance <- damerauLevenshteinMatrix(element, value,
+          enableTranspositions) >>= (v => succeed(v(v.length - 1)))
       } yield distance <= maxDistance
 }
 

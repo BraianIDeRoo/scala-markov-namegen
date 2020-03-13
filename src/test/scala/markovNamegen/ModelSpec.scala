@@ -69,13 +69,15 @@ object ModelSpec extends DefaultRunnableSpec {
     "ar" -> Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
   )
+  val testPriorSmoothing: Smoothing = PriorSmoothing(0.1)
+  val testNoSmoothing: Smoothing    = NoSmoothing
 
   val modelSuite2: Spec[Random with TestRandom, TestFailure[Nothing], TestSuccess] =
     suite("Model order 2")(
       testM("should generate a correct output with correct parameters") {
         for {
           _            <- TestRandom.feedDoubles(0.1)
-          m            <- Model.make(testAlphabet, 0, 2)
+          m            <- Model.make(testAlphabet, testNoSmoothing, 2)
           _            <- m.retrain(testData)
           observations <- m.observations
           chains       <- m.chains
@@ -88,7 +90,7 @@ object ModelSpec extends DefaultRunnableSpec {
       testM("should fail to generate an output from an incorrect input") {
         for {
           _   <- TestRandom.feedDoubles(0.1)
-          m   <- Model.make(testAlphabet, 0, 2)
+          m   <- Model.make(testAlphabet, testNoSmoothing, 2)
           _   <- m.retrain(testData)
           res <- m.generate("foo")
         } yield assert(res.isEmpty)(isTrue)
@@ -99,7 +101,7 @@ object ModelSpec extends DefaultRunnableSpec {
       ) {
         for {
           _   <- TestRandom.feedDoubles(4)
-          m   <- Model.make(testAlphabet, 0, 2)
+          m   <- Model.make(testAlphabet, testNoSmoothing, 2)
           _   <- m.retrain(testData)
           res <- m.generate("fo")
         } yield assert(res.isEmpty)(isTrue)
@@ -110,7 +112,7 @@ object ModelSpec extends DefaultRunnableSpec {
       ) {
         for {
           _   <- TestRandom.feedDoubles(0.5)
-          m   <- Model.make(testAlphabet, 0.1, 2)
+          m   <- Model.make(testAlphabet, testPriorSmoothing, 2)
           _   <- m.retrain(testData)
           res <- m.generate("fo")
         } yield assert(res.isEmpty)(isFalse) &&
@@ -119,7 +121,7 @@ object ModelSpec extends DefaultRunnableSpec {
       testM("should always fail if provided an empty dataset") {
         for {
           _   <- TestRandom.feedDoubles(0.5)
-          m   <- Model.make(testAlphabet, 0.1, 2)
+          m   <- Model.make(testAlphabet, testPriorSmoothing, 2)
           _   <- m.retrain(Vector())
           res <- m.generate("fo")
         } yield assert(res.isEmpty)(isTrue)
@@ -127,7 +129,7 @@ object ModelSpec extends DefaultRunnableSpec {
       testM("should always fail if provided an empty alphabet") {
         for {
           _   <- TestRandom.feedDoubles(0.5)
-          m   <- Model.make(Vector(), 0.1, 2)
+          m   <- Model.make(Vector(), testPriorSmoothing, 2)
           _   <- m.retrain(testData)
           res <- m.generate("fo")
         } yield assert(res.isEmpty)(isTrue)
@@ -135,7 +137,7 @@ object ModelSpec extends DefaultRunnableSpec {
       testM("should always fail if provided with a wrong context") {
         for {
           _   <- TestRandom.feedDoubles(0.5)
-          m   <- Model.make(testAlphabet, 0, 2)
+          m   <- Model.make(testAlphabet, testNoSmoothing, 2)
           _   <- m.retrain(testData)
           res <- m.generate("xe")
         } yield assert(res.isEmpty)(isTrue)
@@ -145,7 +147,7 @@ object ModelSpec extends DefaultRunnableSpec {
     testM("should generate a correct output with correct parameters") {
       for {
         _   <- TestRandom.feedDoubles(0.1)
-        m   <- Model.make(testAlphabet, 0, 1)
+        m   <- Model.make(testAlphabet, testNoSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("f")
       } yield assert(res.isEmpty)(isFalse) &&
@@ -154,7 +156,7 @@ object ModelSpec extends DefaultRunnableSpec {
     testM("should fail to generate an output from an incorrect input") {
       for {
         _   <- TestRandom.feedDoubles(0.1)
-        m   <- Model.make(testAlphabet, 0, 1)
+        m   <- Model.make(testAlphabet, testNoSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("fo")
       } yield assert(res.isEmpty)(isTrue)
@@ -165,7 +167,7 @@ object ModelSpec extends DefaultRunnableSpec {
     ) {
       for {
         _   <- TestRandom.feedDoubles(4)
-        m   <- Model.make(testAlphabet, 0, 1)
+        m   <- Model.make(testAlphabet, testNoSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("f")
       } yield assert(res.isEmpty)(isTrue)
@@ -176,7 +178,7 @@ object ModelSpec extends DefaultRunnableSpec {
     ) {
       for {
         _   <- TestRandom.feedDoubles(0.5)
-        m   <- Model.make(testAlphabet, 0.1, 1)
+        m   <- Model.make(testAlphabet, testPriorSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("f")
       } yield assert(res.isEmpty)(isFalse) &&
@@ -185,7 +187,7 @@ object ModelSpec extends DefaultRunnableSpec {
     testM("should always fail if provided an empty dataset") {
       for {
         _   <- TestRandom.feedDoubles(0.5)
-        m   <- Model.make(testAlphabet, 0.1, 1)
+        m   <- Model.make(testAlphabet, testPriorSmoothing, 1)
         _   <- m.retrain(Vector())
         res <- m.generate("f")
       } yield assert(res.isEmpty)(isTrue)
@@ -193,7 +195,7 @@ object ModelSpec extends DefaultRunnableSpec {
     testM("should always fail if provided an empty alphabet") {
       for {
         _   <- TestRandom.feedDoubles(0.5)
-        m   <- Model.make(Vector(), 0.1, 1)
+        m   <- Model.make(Vector(), testPriorSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("f")
       } yield assert(res.isEmpty)(isTrue)
@@ -201,7 +203,7 @@ object ModelSpec extends DefaultRunnableSpec {
     testM("should always fail if provided with a wrong context") {
       for {
         _   <- TestRandom.feedDoubles(0.5)
-        m   <- Model.make(testAlphabet, 0, 1)
+        m   <- Model.make(testAlphabet, testNoSmoothing, 1)
         _   <- m.retrain(testData)
         res <- m.generate("x")
       } yield assert(res.isEmpty)(isTrue)

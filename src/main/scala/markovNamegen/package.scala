@@ -1,7 +1,6 @@
 import zio.ZIO._
-import zio.duration.Duration
 import zio.random.Random
-import zio.{ Has, IO, Ref, ZIO, ZLayer }
+import zio.{ Has, Ref, ZIO, ZLayer }
 
 package object markovNamegen {
   type StringGenerator = Has[StringGenerator.Service]
@@ -14,12 +13,12 @@ package object markovNamegen {
       ): ZIO[Random, Nothing, List[String]]
     }
 
-    private val liveF: ZIO[Has[Double] with Has[Int] with Has[Vector[String]], Nothing, Service] = {
+    private val liveF: ZIO[Has[Smoothing] with Has[Int] with Has[Vector[String]], Nothing, Service] = {
       for {
-        prior <- ZIO.access[Has[Double]](x => x.get)
-        order <- ZIO.access[Has[Int]](x => x.get)
-        data  <- ZIO.access[Has[Vector[String]]](x => x.get)
-        g     <- Generator.make(data, prior, order)
+        smoothing <- ZIO.access[Has[Smoothing]](x => x.get)
+        order     <- ZIO.access[Has[Int]](x => x.get)
+        data      <- ZIO.access[Has[Vector[String]]](x => x.get)
+        g         <- Generator.make(data, smoothing, order)
       } yield new Service {
 
         private def tryTask[R, E](
@@ -46,7 +45,7 @@ package object markovNamegen {
       }
     }
 
-    val Live: ZLayer[Has[Double] with Has[Int] with Has[Vector[String]], Nothing, StringGenerator] =
+    val Live: ZLayer[Has[Smoothing] with Has[Int] with Has[Vector[String]], Nothing, StringGenerator] =
       ZLayer.fromEffect(liveF)
 
     def generate(

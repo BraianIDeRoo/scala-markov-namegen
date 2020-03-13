@@ -8,24 +8,23 @@ import zio.random.Random
 private[markovNamegen] class Generator private (
   data: IndexedSeq[String],
   val order: Int,
-  val prior: Double,
+  val smoothing: Smoothing,
   _models: List[Model],
   val alphabet: IndexedSeq[String]
 ) {
 
   def models: ZIO[Any, Nothing, List[
-    (Int, Double, IndexedSeq[String], Map[String, UniqueVector[String]], Map[String, Vector[Double]])
+    (Int, Smoothing, IndexedSeq[String], Map[String, UniqueVector[String]], Map[String, Vector[Double]])
   ]] =
     foreach(_models) { m =>
       for {
         observations <- m.observations
         chains       <- m.chains
-      } yield (m.order, m.prior, m.alphabet, observations, chains)
+      } yield (m.order, m.smoothing, m.alphabet, observations, chains)
     }
 
   def trainAll: ZIO[Any, Nothing, Unit] =
-    if (prior == 0) foreachPar_(_models)(_.retrain(data))
-    else _models.head.retrain(data)
+    foreachPar_(_models)(_.retrain(data))
 
   def generate: ZIO[Random, Nothing, Option[String]] = {
     val word = "#" * order
@@ -76,7 +75,7 @@ private[markovNamegen] class Generator private (
 }
 
 object Generator {
-  def make(data: IndexedSeq[String], prior: Double, order: Int): ZIO[Any, Nothing, Generator] = {
+  def make(data: IndexedSeq[String], smoothing: Smoothing, order: Int): ZIO[Any, Nothing, Generator] = {
     val letters =
       data.flatMap(x => x.toList.map(_.toString)).sorted.distinct :+ "#"
 
@@ -84,12 +83,11 @@ object Generator {
       models <- foreach(0 until order)(x =>
                  Model.make(
                    letters.toVector,
-                   prior,
-                   order
-                     - x
+                   smoothing,
+                   order - x
                  )
                )
-    } yield new Generator(data, order, prior, models, letters)
+    } yield new Generator(data, order, smoothing, models, letters)
 
   }.tap(_.trainAll)
 }

@@ -9,39 +9,36 @@ import zio.test.TestAspect.forked
 import zio.test.{ DefaultRunnableSpec, ZSpec }
 
 object GeneratorSpec extends DefaultRunnableSpec {
-  val testData: Vector[String] = Vector("foo", "foobar", "ook")
-  val testAlphabet             = IndexedSeq("a", "b", "f", "k", "o", "r", "#")
+  val testData: Vector[String]      = Vector("foo", "foobar", "ook")
+  val testAlphabet                  = IndexedSeq("a", "b", "f", "k", "o", "r", "#")
+  val testPriorSmoothing: Smoothing = PriorSmoothing(0.01)
 
   val generatorSuite: Spec[Random with TestRandom, TestFailure[Nothing], TestSuccess] =
     suite("Generator")(
       testM("should pass its values to the models correctly") {
         for {
-          g        <- Generator.make(testData, 0.01, 2)
+          g        <- Generator.make(testData, testPriorSmoothing, 2)
           alphabet = g.alphabet
-          order    = g.order
-          prior    = g.prior
           ms       <- g.models
           mA       = ms.map(_._3)
           mO       = ms.map(_._1)
-          mP       = ms.map(_._2)
           _        <- succeed(())
         } yield assert(alphabet)(equalTo(testAlphabet)) &&
           assert(mA.forall(_ == testAlphabet))(isTrue) &&
           assert(mO.head == 2)(isTrue) &&
-          assert(mO(1) == 1)(isTrue) &&
-          assert(mP)(equalTo(List(0.01, 0.01)))
+          assert(mO(1) == 1)(isTrue)
       },
       testM("should always generate a word with prior") {
         for {
-          _        <- TestRandom.feedDoubles(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
-          g        <- Generator.make(testData, 0.01, 2)
+          _        <- TestRandom.feedDoubles(0.4, 0.1, 1.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+          g        <- Generator.make(testData, testPriorSmoothing, 2)
           maybeRes <- g.generate
           res = maybeRes match {
             case Some(value) => value
             case None        => ""
           }
         } yield assert(res.isEmpty)(isFalse) &&
-          assert(res)(equalTo("f"))
+          assert(res)(equalTo("fobar"))
       }
     )
 
