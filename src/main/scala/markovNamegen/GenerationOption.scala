@@ -23,10 +23,6 @@ trait SingleGenerationOptionM extends GenerationOption {
   def check(element: String): UIO[Boolean]
 }
 
-case class Number(value: Int) extends GroupGenerationOption {
-  override def check(elements: Seq[String]): Boolean = elements.length == value
-}
-
 case class Length(value: Int) extends SingleGenerationOption {
   override def check(element: String): Boolean = element.length == value
 }
@@ -53,6 +49,10 @@ case class Includes(value: String) extends SingleGenerationOption {
 
 case class Excludes(value: String) extends SingleGenerationOption {
   override def check(element: String): Boolean = !element.contains(value)
+}
+
+case class ExcludesAny(values: Iterable[String]) extends SingleGenerationOption {
+  override def check(element: String): Boolean = values.forall(s => element.contains(s))
 }
 
 case class DamerauLevenshteinDistance(value: String, maxDistance: Int,
