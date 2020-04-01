@@ -14,17 +14,17 @@ private[markovNamegen] class Model private (
   val smoothing: SmoothingF
 ) {
 
-  def observations: ZIO[Any, Nothing, Map[String, UniqueVector[String]]] =
+  private def accessMapRef[A, B <: Iterable[A]](map: Ref[Map[String, Ref[B]]]): ZIO[Any, Nothing, Map[String, B]] =
     for {
-      o   <- _observations.get
-      res <- foreach(o)(a => a._2.get >>= (x => succeed(a._1, x)))
+      a   <- map.get
+      res <- foreach(a)(o => o._2.get >>= (x => succeed(o._1, x)))
     } yield res.toMap
 
+  def observations: ZIO[Any, Nothing, Map[String, UniqueVector[String]]] =
+    accessMapRef[String, UniqueVector[String]](_observations)
+
   def chains: ZIO[Any, Nothing, Map[String, Vector[Double]]] =
-    for {
-      c   <- _chains.get
-      res <- foreach(c)(a => a._2.get >>= (x => succeed(a._1, x)))
-    } yield res.toMap
+    accessMapRef[Double, Vector[Double]](_chains)
 
   def generate(context: String): ZIO[Random, Nothing, Option[String]] =
     for {
