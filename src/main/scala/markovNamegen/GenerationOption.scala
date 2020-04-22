@@ -51,8 +51,10 @@ case class Excludes(value: String) extends SingleGenerationOption {
   override def check(element: String): Boolean = !element.contains(value)
 }
 
-case class ExcludesAny(values: Iterable[String]) extends SingleGenerationOption {
-  override def check(element: String): Boolean = values.forall(s => element.contains(s))
+case class ExcludesAny(values: Iterable[String]) extends
+  SingleGenerationOption {
+  override def check(element: String): Boolean = values.forall(s => element
+    .contains(s))
 }
 
 case class DamerauLevenshteinDistance(value: String, maxDistance: Int,

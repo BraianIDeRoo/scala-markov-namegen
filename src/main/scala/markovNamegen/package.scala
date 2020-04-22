@@ -1,6 +1,6 @@
+import braianideroo.random.SeedRandom
 import markovNamegen.Smoothing.SmoothingF
 import zio.ZIO._
-import zio.random.Random
 import zio.{ Has, Ref, ZIO, ZLayer }
 
 package object markovNamegen {
@@ -12,14 +12,18 @@ package object markovNamegen {
         number: Int,
         groupOptions: List[GroupGenerationOption],
         perStringOptions: List[SingleGenerationOption]
-      ): ZIO[Random, Nothing, List[String]]
+      ): ZIO[Any, Nothing, List[String]]
     }
 
-    private val liveF: ZIO[Has[SmoothingF] with Has[Int] with Has[Vector[String]], Nothing, Service] = {
+    case class StringGeneratorLiveConfig(smoothingF: SmoothingF, order: Int, data: Vector[String])
+
+    private val liveF: ZIO[Has[StringGeneratorLiveConfig] with SeedRandom, Nothing, Service] = {
       for {
-        smoothingF <- ZIO.access[Has[SmoothingF]](x => x.get)
-        order      <- ZIO.access[Has[Int]](x => x.get)
-        data       <- ZIO.access[Has[Vector[String]]](x => x.get)
+        config     <- ZIO.access[Has[StringGeneratorLiveConfig]](x => x.get)
+        smoothingF = config.smoothingF
+        order      = config.order
+        data       = config.data
+        random     <- ZIO.access[SeedRandom](x => x)
         g          <- Generator.make(data, smoothingF, order)
       } yield new Service {
 
@@ -38,23 +42,23 @@ package object markovNamegen {
           number: Int,
           groupOptions: List[GroupGenerationOption],
           perStringOptions: List[SingleGenerationOption]
-        ): ZIO[Random, Nothing, List[String]] =
-          for {
+        ): ZIO[Any, Nothing, List[String]] =
+          (for {
             finishedJobs <- Ref.make[List[String]](List())
             _            <- foreachPar_(0 until number)(_ => tryTask(g.generate, perStringOptions, finishedJobs))
             res          <- finishedJobs.get
-          } yield res
+          } yield res).provide(random)
       }
     }
 
-    val Live: ZLayer[Has[SmoothingF] with Has[Int] with Has[Vector[String]], Nothing, StringGenerator] =
+    val Live: ZLayer[Has[StringGeneratorLiveConfig] with SeedRandom, Nothing, StringGenerator] =
       ZLayer.fromEffect(liveF)
 
     def generate(
       number: Int,
       groupOptions: List[GroupGenerationOption],
       perStringOptions: List[SingleGenerationOption]
-    ): ZIO[Random with markovNamegen.StringGenerator, Nothing, List[String]] =
+    ): ZIO[StringGenerator, Nothing, List[String]] =
       for {
         generator <- ZIO.access[StringGenerator](x => x.get)
         res       <- generator.generate(number, groupOptions, perStringOptions)
