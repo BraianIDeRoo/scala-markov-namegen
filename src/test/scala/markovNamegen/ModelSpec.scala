@@ -1,14 +1,11 @@
 package markovNamegen
 
-import zio.test._
-import Assertion._
 import braianideroo.random.SeedRandom
 import markovNamegen.Smoothing.SmoothingF
-import markovNamegen.util.UniqueVector
-import zio.{ Has, Layer, ZIO, ZLayer }
-import zio.random.Random
-import zio.test.environment.TestRandom
+import zio.test.Assertion._
 import zio.test.TestAspect.forked
+import zio.test._
+import zio.{ Has, Layer, ZLayer }
 
 object ModelSpec extends DefaultRunnableSpec {
   val testAlphabet: Vector[String] = Vector(
