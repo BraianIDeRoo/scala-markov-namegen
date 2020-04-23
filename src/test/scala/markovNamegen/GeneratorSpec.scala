@@ -5,7 +5,6 @@ import Assertion._
 import braianideroo.random.SeedRandom
 import markovNamegen.Smoothing.SmoothingF
 import zio.{ Has, Layer, ZLayer }
-import zio.ZIO._
 import zio.test.TestAspect.forked
 import zio.test.{ DefaultRunnableSpec, ZSpec }
 
