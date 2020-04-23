@@ -13,7 +13,7 @@ private[markovNamegen] class Generator private (
 ) {
 
   def trainAll: ZIO[Any, Nothing, Unit] =
-    foreachPar_(_models)(_.retrain(data))
+    foreach_(_models)(_.retrain(data))
 
   def generate: ZIO[SeedRandom, Nothing, Option[String]] = {
     val word = "#" * order

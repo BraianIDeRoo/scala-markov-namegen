@@ -45,7 +45,7 @@ package object markovNamegen {
         ): ZIO[Any, Nothing, List[String]] =
           (for {
             finishedJobs <- Ref.make[List[String]](List())
-            _            <- foreachPar_(0 until number)(_ => tryTask(g.generate, perStringOptions, finishedJobs))
+            _            <- foreach_(0 until number)(_ => tryTask(g.generate, perStringOptions, finishedJobs))
             res          <- finishedJobs.get
           } yield res).provide(random)
       }
