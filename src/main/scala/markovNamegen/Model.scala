@@ -1,18 +1,16 @@
 package markovNamegen
 
 import braianideroo.random.SeedRandom
-import braianideroo.random.value.{ Probability, RandomVIO }
-import markovNamegen.Smoothing.SmoothingF
+import braianideroo.random.value._
 import zio.ZIO._
 import zio.{ Ref, ZIO }
 
 private[markovNamegen] class Model private (
   val order: Int,
   probabilities: Ref[Map[String, RandomVIO[Nothing, Option[String]]]],
-  val smoothing: SmoothingF,
+  val smoothing: SmoothF[String],
   letters: IndexedSeq[String]
 ) {
-  type ProbVector = Vector[Probability[String]]
 
   def generate(context: String): ZIO[SeedRandom, Nothing, Option[String]] =
     for {
@@ -28,54 +26,74 @@ private[markovNamegen] class Model private (
 
   private def train(data: IndexedSeq[String]) =
     for {
-      observations <- Ref.make[Map[String, Ref[ProbVector]]](Map())
+      observations <- Ref.make[Map[String, Ref[Probabilities[String]]]](Map())
       _ <- foreach_(data) { element =>
             val parts = getParts(element, order)
             foreach_(parts)(part =>
-              addLetters(part._1, observations) *>
-                addPart(part, observations)
+              for {
+                obs <- observations.get
+                ref <- obs.get(part._1) match {
+                        case Some(value) => succeed(value)
+                        case None        => addLetters(part._1, observations)
+                      }
+                _ <- addPart(part, ref)
+                _ <- ref.get >>= (x => succeed(x.count(x => x._2 > 0)))
+              } yield ()
             )
           }
       // smooth the probabilities
-      _   <- smoothing.provide(observations)
       obs <- observations.get
-      x   = obs.map(x => (x._1, x._2.get >>= (y => braianideroo.random.value.RandomValue.fromProbabilityIterable(y))))
-      _   <- probabilities.set(x)
+      _ <- foreach_(obs) { x =>
+            for {
+              aux      <- x._2.get
+              smoothed <- aux.smooth(smoothing)
+              _        <- x._2.set(smoothed)
+            } yield ()
+          }
+      x = obs.map(x => (x._1, x._2.get >>= (y => RandomValue.fromMap(y))))
+      _ <- probabilities.set(x)
     } yield ()
 
-  private def addLetters(element: String, observations: Ref[Map[String, Ref[ProbVector]]]) = {
-    val l = letters.map(x => Probability(x, 0))
+  private def addLetters(element: String, observations: Ref[Map[String, Ref[Probabilities[String]]]]) = {
+    val l = letters.map(x => (x, 0.0))
     for {
-      refVec <- Ref.make[Vector[Probability[String]]](Vector(l: _*))
+      refVec <- Ref.make[Probabilities[String]](Map(l: _*))
       _      <- observations.update(_ + (element -> refVec))
-    } yield ()
+    } yield refVec
   }
 
-  private def addPart(part: (String, String), obs: Ref[Map[String, Ref[ProbVector]]]) =
+  private def addPart(part: (String, String), obs: Ref[Probabilities[String]]): ZIO[Any, Nothing, Unit] =
     for {
-      maybeObservationRef <- obs.get.map(_.get(part._1))
-      _ <- maybeObservationRef match {
-            case Some(observationRef) =>
+      probabilities <- obs.get
+      probability   = probabilities(part._2)
+      _             <- obs.update(_ + (part._2 -> (probability + 1)))
+    } yield ()
+
+  /*
+  private def addPart(part: (String, String), obs: Ref[Map[String, Ref[Probabilities[String]]]]) =
+    for {
+      maybeProbabilitiesRef <- obs.get.map(_.get(part._1))
+      _ <- maybeProbabilitiesRef match {
+            case Some(probabilitiesRef) =>
               for {
-                observation      <- observationRef.get
-                probabilityIndex = observation.indexWhere(_.value == part._2)
-                _ <- probabilityIndex match {
-                      case n: Int if n > -1 =>
-                        val prob    = observation(n)
-                        val newProb = Probability(prob.value, prob.probability + 1)
-                        observationRef.update(_.updated(n, newProb))
-                      case _ =>
-                        observationRef.update(_ :+ Probability(part._2, 1))
-                    }
+                probabilities    <- probabilitiesRef.get
+                maybeProbability = probabilities.get(part._2)
+                _ <- probabilitiesRef.set(probabilities + (part._2 -> (maybeProbability match {
+                      case Some(probability) => probability + 1
+                      case None              => 1
+                    })))
+                aux <- probabilitiesRef.get
               } yield ()
             case None =>
               for {
                 observationRef <- Ref
-                                   .make[ProbVector](Vector(Probability(part._2, 1)))
+                                   .make[Probabilities[String]](Map(part._2 -> 1))
                 _ <- obs.update(_ + (part._1 -> observationRef))
               } yield ()
           }
     } yield ()
+
+   */
 
   def getParts(string: String, order: Int): Vector[(String, String)] = {
     @scala.annotation.tailrec
@@ -91,7 +109,7 @@ private[markovNamegen] class Model private (
 }
 
 object Model {
-  def make(smoothingF: SmoothingF, order: Int, letters: IndexedSeq[String]): ZIO[Any, Nothing, Model] =
+  def make(smoothingF: SmoothF[String], order: Int, letters: IndexedSeq[String]): ZIO[Any, Nothing, Model] =
     for {
       probabilities <- Ref.make[Map[String, RandomVIO[Nothing, Option[String]]]](Map())
     } yield new Model(order, probabilities, smoothingF, letters)
