@@ -1,14 +1,14 @@
 package markovNamegen
 
 import braianideroo.random.SeedRandom
-import markovNamegen.Smoothing.SmoothingF
+import braianideroo.random.value.SmoothF
 import zio.ZIO
 import zio.ZIO._
 
 private[markovNamegen] class Generator private (
   data: IndexedSeq[String],
   val order: Int,
-  val smoothingF: SmoothingF,
+  val smoothingF: SmoothF[String],
   _models: List[Model]
 ) {
 
@@ -64,7 +64,7 @@ private[markovNamegen] class Generator private (
 }
 
 object Generator {
-  def make(data: IndexedSeq[String], smoothingF: SmoothingF, order: Int): ZIO[Any, Nothing, Generator] = {
+  def make(data: IndexedSeq[String], smoothingF: SmoothF[String], order: Int): ZIO[Any, Nothing, Generator] = {
     val letters =
       data.flatMap(x => x.toList.map(_.toString)).sorted.distinct :+ "#"
     for {

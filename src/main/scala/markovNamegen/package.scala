@@ -1,5 +1,5 @@
 import braianideroo.random.SeedRandom
-import markovNamegen.Smoothing.SmoothingF
+import braianideroo.random.value.SmoothF
 import zio.ZIO._
 import zio.{ Has, Ref, ZIO, ZLayer }
 
@@ -15,7 +15,7 @@ package object markovNamegen {
       ): ZIO[Any, Nothing, List[String]]
     }
 
-    case class StringGeneratorLiveConfig(smoothingF: SmoothingF, order: Int, data: Vector[String])
+    case class StringGeneratorLiveConfig(smoothingF: SmoothF[String], order: Int, data: Vector[String])
 
     private val liveF: ZIO[Has[StringGeneratorLiveConfig] with SeedRandom, Nothing, Service] = {
       for {

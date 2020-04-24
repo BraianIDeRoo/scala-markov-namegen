@@ -1,7 +1,7 @@
 package markovNamegen
 
 import braianideroo.random.SeedRandom
-import markovNamegen.Smoothing.SmoothingF
+import braianideroo.random.value.{ SmoothF, Smoothing }
 import zio.test.Assertion._
 import zio.test.TestAspect.forked
 import zio.test._
@@ -37,9 +37,9 @@ object ModelSpec extends DefaultRunnableSpec {
     "z",
     "#"
   )
-  val testData: Vector[String]       = Vector("foo", "foobar", "ook")
-  val testPriorSmoothing: SmoothingF = Smoothing.priorSmoothing(0.1)
-  val testNoSmoothing: SmoothingF    = Smoothing.noSmoothing
+  val testData: Vector[String]            = Vector("foo", "foobar", "ook")
+  val testPriorSmoothing: SmoothF[String] = Smoothing.priorSmoothing(0.1)
+  val testNoSmoothing: SmoothF[String]    = Smoothing.noSmoothing
 
   val seed: Layer[Nothing, Has[Long]] = ZLayer.succeed(501L)
   val randomLayer: ZLayer[Any, Nothing, Has[SeedRandom.Service]] =
@@ -71,7 +71,7 @@ object ModelSpec extends DefaultRunnableSpec {
           _   <- m.retrain(testData)
           res <- m.generate("fo")
         } yield assert(res.isEmpty)(isFalse) &&
-          assert(res.get)(equalTo("s"))
+          assert(res.get)(equalTo("o"))
       },
       testM("should always fail if provided an empty dataset") {
         for {
@@ -115,7 +115,7 @@ object ModelSpec extends DefaultRunnableSpec {
           _   <- m.retrain(testData)
           res <- m.generate("f")
         } yield assert(res.isEmpty)(isFalse) &&
-          assert(res.get)(equalTo("s"))
+          assert(res.get)(equalTo("o"))
       },
       testM("should always fail if provided an empty dataset") {
         for {
