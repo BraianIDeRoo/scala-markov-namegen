@@ -24,7 +24,7 @@ import zio.ZIO._
 private[markovNamegen] class Generator private (
   data: IndexedSeq[String],
   val order: Int,
-  val smoothingF: SmoothF[String],
+  val smoothingF: SmoothF[Any, String],
   _models: List[Model]
 ) {
 
@@ -80,7 +80,7 @@ private[markovNamegen] class Generator private (
 }
 
 object Generator {
-  def make(data: IndexedSeq[String], smoothingF: SmoothF[String], order: Int): ZIO[Any, Nothing, Generator] = {
+  def make(data: IndexedSeq[String], smoothingF: SmoothF[Any, String], order: Int): ZIO[Any, Nothing, Generator] = {
     val letters =
       data.flatMap(x => x.toList.map(_.toString)).sorted.distinct :+ "#"
     for {

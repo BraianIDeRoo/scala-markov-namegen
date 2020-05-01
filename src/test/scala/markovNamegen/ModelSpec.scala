@@ -53,9 +53,9 @@ object ModelSpec extends DefaultRunnableSpec {
     "z",
     "#"
   )
-  val testData: Vector[String]            = Vector("foo", "foobar", "ook")
-  val testPriorSmoothing: SmoothF[String] = Smoothing.priorSmoothing(0.1)
-  val testNoSmoothing: SmoothF[String]    = Smoothing.noSmoothing
+  val testData: Vector[String]                 = Vector("foo", "foobar", "ook")
+  val testPriorSmoothing: SmoothF[Any, String] = Smoothing.priorSmoothing(0.1)
+  val testNoSmoothing: SmoothF[Any, String]    = Smoothing.noSmoothing
 
   val seed: Layer[Nothing, Has[Long]] = ZLayer.succeed(501L)
   val randomLayer: ZLayer[Any, Nothing, Has[SeedRandom.Service]] =

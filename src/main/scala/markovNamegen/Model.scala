@@ -24,7 +24,7 @@ import zio.{ Ref, ZIO }
 private[markovNamegen] class Model private (
   val order: Int,
   probabilities: Ref[Map[String, RandomVIO[Nothing, Option[String]]]],
-  val smoothing: SmoothF[String],
+  val smoothing: SmoothF[Any, String],
   letters: IndexedSeq[String]
 ) {
 
@@ -42,7 +42,7 @@ private[markovNamegen] class Model private (
 
   private def train(data: IndexedSeq[String]) =
     for {
-      observations <- Ref.make[Map[String, Ref[Probabilities[String]]]](Map())
+      observations <- Ref.make[Map[String, Ref[Probabilities[Any, String]]]](Map())
       _ <- foreach_(data) { element =>
             val parts = getParts(element, order)
             foreach_(parts)(part =>
@@ -53,7 +53,7 @@ private[markovNamegen] class Model private (
                         case None        => addLetters(part._1, observations)
                       }
                 _ <- addPart(part, ref)
-                _ <- ref.get >>= (x => succeed(x.count(x => x._2 > 0)))
+                //_ <- ref.get >>= (x => succeed(x.count(x => x._2 > 0)))
               } yield ()
             )
           }
@@ -61,28 +61,30 @@ private[markovNamegen] class Model private (
       obs <- observations.get
       _ <- foreach_(obs) { x =>
             for {
-              aux      <- x._2.get
-              smoothed <- aux.smooth(smoothing)
-              _        <- x._2.set(smoothed)
+              aux <- x._2.get
+              _   <- aux.smooth(smoothing)
             } yield ()
           }
       x = obs.map(x => (x._1, x._2.get >>= (y => RandomValue.fromMap(y))))
       _ <- probabilities.set(x)
     } yield ()
 
-  private def addLetters(element: String, observations: Ref[Map[String, Ref[Probabilities[String]]]]) = {
+  private def addLetters(element: String, observations: Ref[Map[String, Ref[Probabilities[Any, String]]]]) = {
     val l = letters.map(x => (x, 0.0))
     for {
-      refVec <- Ref.make[Probabilities[String]](Map(l: _*))
-      _      <- observations.update(_ + (element -> refVec))
+      lettersProb <- ZIO.foreach(l)(x => Probability.make[Any](x._2).map(y => (x._1, y)))
+      refVec      <- Ref.make[Probabilities[Any, String]](Map.from(lettersProb))
+      _           <- observations.update(_ + (element -> refVec))
     } yield refVec
   }
 
-  private def addPart(part: (String, String), obs: Ref[Probabilities[String]]): ZIO[Any, Nothing, Unit] =
+  private def addPart(part: (String, String), obs: Ref[Probabilities[Any, String]]): ZIO[Any, Nothing, Unit] =
     for {
       probabilities <- obs.get
       probability   = probabilities(part._2)
-      _             <- obs.update(_ + (part._2 -> (probability + 1)))
+      _ <- probability.addModifier(new Modifier[Any] {
+            override def value: ZIO[Any, Nothing, Option[Double]] = ZIO.some(1)
+          })
     } yield ()
 
   /*
@@ -125,7 +127,7 @@ private[markovNamegen] class Model private (
 }
 
 object Model {
-  def make(smoothingF: SmoothF[String], order: Int, letters: IndexedSeq[String]): ZIO[Any, Nothing, Model] =
+  def make(smoothingF: SmoothF[Any, String], order: Int, letters: IndexedSeq[String]): ZIO[Any, Nothing, Model] =
     for {
       probabilities <- Ref.make[Map[String, RandomVIO[Nothing, Option[String]]]](Map())
     } yield new Model(order, probabilities, smoothingF, letters)

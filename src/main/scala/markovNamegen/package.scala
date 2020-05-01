@@ -31,7 +31,7 @@ package object markovNamegen {
       ): ZIO[Any, Nothing, List[String]]
     }
 
-    case class StringGeneratorLiveConfig(smoothingF: SmoothF[String], order: Int, data: Vector[String])
+    case class StringGeneratorLiveConfig(smoothingF: SmoothF[Any, String], order: Int, data: Vector[String])
 
     private val liveF: ZIO[Has[StringGeneratorLiveConfig] with SeedRandom, Nothing, Service] = {
       for {
