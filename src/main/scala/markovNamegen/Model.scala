@@ -53,7 +53,6 @@ private[markovNamegen] class Model private (
                         case None        => addLetters(part._1, observations)
                       }
                 _ <- addPart(part, ref)
-                //_ <- ref.get >>= (x => succeed(x.count(x => x._2 > 0)))
               } yield ()
             )
           }
@@ -82,36 +81,10 @@ private[markovNamegen] class Model private (
     for {
       probabilities <- obs.get
       probability   = probabilities(part._2)
-      _ <- probability.addModifier(new Modifier[Any] {
+      _ <- probability.addModifier("model", new Modifier[Any] {
             override def value: ZIO[Any, Nothing, Option[Double]] = ZIO.some(1)
           })
     } yield ()
-
-  /*
-  private def addPart(part: (String, String), obs: Ref[Map[String, Ref[Probabilities[String]]]]) =
-    for {
-      maybeProbabilitiesRef <- obs.get.map(_.get(part._1))
-      _ <- maybeProbabilitiesRef match {
-            case Some(probabilitiesRef) =>
-              for {
-                probabilities    <- probabilitiesRef.get
-                maybeProbability = probabilities.get(part._2)
-                _ <- probabilitiesRef.set(probabilities + (part._2 -> (maybeProbability match {
-                      case Some(probability) => probability + 1
-                      case None              => 1
-                    })))
-                aux <- probabilitiesRef.get
-              } yield ()
-            case None =>
-              for {
-                observationRef <- Ref
-                                   .make[Probabilities[String]](Map(part._2 -> 1))
-                _ <- obs.update(_ + (part._1 -> observationRef))
-              } yield ()
-          }
-    } yield ()
-
-   */
 
   def getParts(string: String, order: Int): Vector[(String, String)] = {
     @scala.annotation.tailrec
