@@ -33,7 +33,7 @@ publishTo := Some(
 
 scalaVersion := "2.13.1"
 
-val zioVersion = "1.0.0-RC18-2"
+val zioVersion = "1.0.0-RC19-2"
 libraryDependencies ++= Seq(
   "dev.zio"                 %% "zio"             % zioVersion,
   "dev.zio"                 %% "zio-test"        % zioVersion % "test",
