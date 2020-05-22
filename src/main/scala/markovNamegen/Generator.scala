@@ -21,15 +21,26 @@ import braianideroo.random.value.SmoothF
 import zio.ZIO
 import zio.ZIO._
 
+import scala.collection.immutable
+
 private[markovNamegen] class Generator private (
-  data: IndexedSeq[String],
+  data: Data,
   val order: Int,
   val smoothingF: SmoothF[Any, String],
   _models: List[Model]
 ) {
 
   def trainAll: ZIO[Any, Nothing, Unit] =
-    foreachPar_(_models)(_.retrain(data))
+    data match {
+      case StringData(data) => foreachPar_(_models)(_.retrain(data))
+      case QuantifiedData(data) =>
+        foreachPar_(_models)(
+          _.retrain(
+            data.flatMap(x => List.fill(x._2)(x._1)).toIndexedSeq
+          )
+        )
+      case _ => unit
+    }
 
   def generate: ZIO[SeedRandom, Nothing, Option[String]] = {
     val word = "#" * order
@@ -80,18 +91,43 @@ private[markovNamegen] class Generator private (
 }
 
 object Generator {
-  def make(data: IndexedSeq[String], smoothingF: SmoothF[Any, String], order: Int): ZIO[Any, Nothing, Generator] = {
-    val letters =
-      data.flatMap(x => x.toList.map(_.toString)).sorted.distinct :+ "#"
-    for {
-      models <- foreach(0 until order)(x =>
-                 Model.make(
-                   smoothingF,
-                   order - x,
-                   letters
-                 )
-               )
-    } yield new Generator(data, order, smoothingF, models)
 
-  }.tap(_.trainAll)
+  private def getLetters(words: IndexedSeq[String]) = {
+    val aux3 = words.map(_.map(_.toString))
+    val aux4 = aux3.flatten
+    val aux5 = aux4.distinct
+    val aux6 = aux5.sorted
+    aux6 :+ "#"
+  }
+
+  private def createModels(
+    smoothingF: SmoothF[Any, String],
+    order: Int,
+    letters: IndexedSeq[String]
+  ): ZIO[Any, Nothing, List[Model]] =
+    foreach(0 until order)(x =>
+      Model.make(
+        smoothingF,
+        order - x,
+        letters
+      )
+    )
+
+  def make(data: Data, smoothingF: SmoothF[Any, String], order: Int): ZIO[Any, Nothing, Generator] =
+    data match {
+      case StringData(d) =>
+        val letters = getLetters(d)
+        createModels(smoothingF, order, letters)
+          .map(models => new Generator(data, order, smoothingF, models))
+      case QuantifiedData(d) =>
+        val letters = getLetters(d.flatMap(x => List.fill(x._2)(x._1)).toIndexedSeq)
+        createModels(smoothingF, order, letters)
+          .map(models => new Generator(data, order, smoothingF, models))
+      case TrainedData(models, letters) =>
+        foreach(models)(x => Model.make(smoothingF, x._1, letters, x._2))
+          .map(models => new Generator(data, order, smoothingF, models))
+      case TrainedRefData(models, letters) =>
+        val m = models.map(x => Model.make(smoothingF, x._1, letters, x._2))
+        ZIO.effectTotal(new Generator(data, order, smoothingF, m.toList))
+    }
 }

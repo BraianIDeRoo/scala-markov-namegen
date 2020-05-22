@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import braianideroo.random.{ SeedRandom, SeedRandomError }
+import braianideroo.random.{ Seed, SeedRandom, SeedRandomError }
 import braianideroo.random.value.SmoothF
 import zio.ZIO._
 import zio.{ Has, Ref, ZIO, ZLayer }
@@ -29,14 +29,16 @@ package object markovNamegen {
         groupOptions: List[GroupGenerationOption],
         perStringOptions: List[SingleGenerationOption]
       ): ZIO[Any, SeedRandomError, List[String]]
+
+      def train: ZIO[Any, Nothing, Unit]
     }
 
-    case class StringGeneratorLiveConfig(smoothingF: SmoothF[Any, String], order: Int, data: Vector[String])
+    case class StringGeneratorLiveConfig(smoothing: SmoothF[Any, String], order: Int, data: Data) extends Config
 
     private val liveF: ZIO[Has[StringGeneratorLiveConfig] with SeedRandom, Nothing, Service] = {
       for {
         config     <- ZIO.access[Has[StringGeneratorLiveConfig]](x => x.get)
-        smoothingF = config.smoothingF
+        smoothingF = config.smoothing
         order      = config.order
         data       = config.data
         random     <- ZIO.access[SeedRandom](x => x)
@@ -64,6 +66,9 @@ package object markovNamegen {
             aux     <- foreachPar(randoms)(r => repeatTask(g.generate, perStringOptions).provideLayer(r))
 
           } yield aux).provide(random)
+
+        override def train: ZIO[Any, Nothing, Unit] =
+          g.trainAll
       }
     }
 

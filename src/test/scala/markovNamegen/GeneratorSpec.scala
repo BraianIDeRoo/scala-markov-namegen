@@ -25,7 +25,7 @@ import zio.test.TestAspect.forked
 import zio.test.{ DefaultRunnableSpec, ZSpec }
 
 object GeneratorSpec extends DefaultRunnableSpec {
-  val testData: Vector[String]                 = Vector("foo", "foobar", "ook")
+  val testData: StringData                     = StringData(Vector("foo", "foobar", "ook"))
   val testAlphabet                             = IndexedSeq("a", "b", "f", "k", "o", "r", "#")
   val testPriorSmoothing: SmoothF[Any, String] = Smoothing.priorSmoothing(0.01)
 

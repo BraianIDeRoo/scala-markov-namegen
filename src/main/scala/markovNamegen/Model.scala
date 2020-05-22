@@ -25,7 +25,7 @@ private[markovNamegen] class Model private (
   val order: Int,
   probabilities: Ref[Map[String, RandomVIO[Nothing, Option[String]]]],
   val smoothing: SmoothF[Any, String],
-  letters: IndexedSeq[String]
+  letters: IndexedSeq[(String, Double)]
 ) {
 
   def generate(context: String): ZIO[SeedRandom, Nothing, Option[String]] =
@@ -68,14 +68,12 @@ private[markovNamegen] class Model private (
       _ <- probabilities.set(x)
     } yield ()
 
-  private def addLetters(element: String, observations: Ref[Map[String, Ref[Probabilities[Any, String]]]]) = {
-    val l = letters.map(x => (x, 0.0))
+  private def addLetters(element: String, observations: Ref[Map[String, Ref[Probabilities[Any, String]]]]) =
     for {
-      lettersProb <- ZIO.foreach(l)(x => Probability.make[Any](x._2).map(y => (x._1, y)))
+      lettersProb <- ZIO.foreach(letters)(x => Probability.make[Any](x._2).map(y => (x._1, y)))
       refVec      <- Ref.make[Probabilities[Any, String]](Map.from(lettersProb))
       _           <- observations.update(_ + (element -> refVec))
     } yield refVec
-  }
 
   private def addPart(part: (String, String), obs: Ref[Probabilities[Any, String]]): ZIO[Any, Nothing, Unit] =
     for {
@@ -100,8 +98,24 @@ private[markovNamegen] class Model private (
 }
 
 object Model {
+  def make(
+    smoothingF: SmoothF[Any, String],
+    order: Int,
+    letters: IndexedSeq[String],
+    probabilities: Ref[Map[String, RandomVIO[Nothing, Option[String]]]]
+  ): Model =
+    new Model(order, probabilities, smoothingF, letters.map(letter => (letter, 0.0)))
+
+  def make(
+    smoothingF: SmoothF[Any, String],
+    order: Int,
+    letters: IndexedSeq[String],
+    probabilities: Map[String, RandomVIO[Nothing, Option[String]]]
+  ): ZIO[Any, Nothing, Model] =
+    Ref
+      .make[Map[String, RandomVIO[Nothing, Option[String]]]](probabilities)
+      .map(ref => make(smoothingF, order, letters, ref))
+
   def make(smoothingF: SmoothF[Any, String], order: Int, letters: IndexedSeq[String]): ZIO[Any, Nothing, Model] =
-    for {
-      probabilities <- Ref.make[Map[String, RandomVIO[Nothing, Option[String]]]](Map())
-    } yield new Model(order, probabilities, smoothingF, letters)
+    make(smoothingF, order, letters, Map())
 }
