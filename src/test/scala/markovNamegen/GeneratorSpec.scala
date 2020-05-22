@@ -38,6 +38,7 @@ object GeneratorSpec extends DefaultRunnableSpec {
       testM("should always generate a word with prior") {
         for {
           g        <- Generator.make(testData, testPriorSmoothing, 2)
+          _        <- g.trainAll
           maybeRes <- g.generate
           res = maybeRes match {
             case Some(value) => value
