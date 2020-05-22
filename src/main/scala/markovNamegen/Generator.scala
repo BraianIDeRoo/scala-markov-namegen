@@ -21,8 +21,6 @@ import braianideroo.random.value.SmoothF
 import zio.ZIO
 import zio.ZIO._
 
-import scala.collection.immutable
-
 private[markovNamegen] class Generator private (
   data: Data,
   val order: Int,

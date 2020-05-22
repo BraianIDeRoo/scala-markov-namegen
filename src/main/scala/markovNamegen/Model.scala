@@ -79,9 +79,7 @@ private[markovNamegen] class Model private (
     for {
       probabilities <- obs.get
       probability   = probabilities(part._2)
-      _ <- probability.addModifier("model", new Modifier[Any] {
-            override def value: ZIO[Any, Nothing, Option[Double]] = ZIO.some(1)
-          })
+      _             <- probability.addModifier("model", Modifier[Any](ZIO.some(1)))
     } yield ()
 
   def getParts(string: String, order: Int): Vector[(String, String)] = {
