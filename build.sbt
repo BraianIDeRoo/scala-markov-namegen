@@ -39,7 +39,7 @@ val markovNamegen = crossProject(JSPlatform, JVMPlatform)
   .in(file("."))
   .settings(
     name := "markovNameger",
-    version := "0.5.0",
+    version := "0.5.1",
     libraryDependencies ++= Seq(
       "dev.zio"                 %%% "zio"          % zioVersion,
       "dev.zio"                 %%% "zio-test"     % zioVersion % "test",
