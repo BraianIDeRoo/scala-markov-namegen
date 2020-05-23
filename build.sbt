@@ -24,6 +24,8 @@ inThisBuild(
   )
 )
 
+ThisBuild / scalaVersion := "2.13.2"
+
 publishTo := Some(
   if (isSnapshot.value)
     Opts.resolver.sonatypeSnapshots
@@ -31,13 +33,33 @@ publishTo := Some(
     Opts.resolver.sonatypeStaging
 )
 
-scalaVersion := "2.13.2"
-
 val zioVersion = "1.0.0-RC19-2"
-libraryDependencies ++= Seq(
-  "dev.zio"                 %% "zio"             % zioVersion,
-  "dev.zio"                 %% "zio-test"        % zioVersion % "test",
-  "dev.zio"                 %% "zio-test-sbt"    % zioVersion % "test",
-  "com.github.BraianIDeRoo" % "random-util_2.13" % "0.5.0"
-)
-testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+
+val markovNamegen = crossProject(JSPlatform, JVMPlatform)
+  .in(file("."))
+  .settings(
+    name := "markovNameger",
+    version := "0.4.1",
+    libraryDependencies ++= Seq(
+      "dev.zio"                 %%% "zio"          % zioVersion,
+      "dev.zio"                 %%% "zio-test"     % zioVersion % "test",
+      "dev.zio"                 %%% "zio-test-sbt" % zioVersion % "test",
+      "com.github.BraianIDeRoo" %%% "random-util"  % "0.5.0"
+    ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    publishTo := Some(
+      if (isSnapshot.value)
+        Opts.resolver.sonatypeSnapshots
+      else
+        Opts.resolver.sonatypeStaging
+    )
+  )
+  .jsSettings(
+    scalaJSUseMainModuleInitializer := true,
+    libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
+  )
+
+lazy val root = project
+  .in(file("."))
+  .aggregate(markovNamegen.js, markovNamegen.jvm)
+  .settings(scalaVersion := "2.13.2", publish := {}, publishLocal := {})
