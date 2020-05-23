@@ -37,8 +37,8 @@ private[markovNamegen] class Model private (
             }
     } yield res
 
-  def retrain(data: IndexedSeq[String]): ZIO[Any, Nothing, Unit] =
-    train(data)
+  def retrain(data: IndexedSeq[String]): ZIO[Any, Nothing, Map[String, RandomVIO[Nothing, Option[String]]]] =
+    train(data) *> probabilities.get
 
   private def train(data: IndexedSeq[String]) =
     for {

@@ -16,7 +16,6 @@
 
 package markovNamegen
 
-import braianideroo.random.Seed
 import braianideroo.random.value.{ RandomVIO, SmoothF }
 import zio.Ref
 

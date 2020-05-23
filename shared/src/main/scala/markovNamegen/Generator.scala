@@ -17,7 +17,7 @@
 package markovNamegen
 
 import braianideroo.random.SeedRandom
-import braianideroo.random.value.SmoothF
+import braianideroo.random.value.{ RandomVIO, SmoothF }
 import zio.ZIO
 import zio.ZIO._
 
@@ -28,16 +28,16 @@ private[markovNamegen] class Generator private (
   _models: List[Model]
 ) {
 
-  def trainAll: ZIO[Any, Nothing, Unit] =
+  def trainAll: ZIO[Any, Nothing, Option[List[Map[String, RandomVIO[Nothing, Option[String]]]]]] =
     data match {
-      case StringData(data) => foreachPar_(_models)(_.retrain(data))
+      case StringData(data) => foreachPar(_models)(_.retrain(data)).map(Some.apply)
       case QuantifiedData(data) =>
-        foreachPar_(_models)(
+        foreachPar(_models)(
           _.retrain(
             data.flatMap(x => List.fill(x._2)(x._1)).toIndexedSeq
           )
-        )
-      case _ => unit
+        ).map(Some.apply)
+      case _ => ZIO.none
     }
 
   def generate: ZIO[SeedRandom, Nothing, Option[String]] = {

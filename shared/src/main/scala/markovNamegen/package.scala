@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import braianideroo.random.{ Seed, SeedRandom, SeedRandomError }
-import braianideroo.random.value.SmoothF
+import braianideroo.random.value.{ RandomVIO, SmoothF }
+import braianideroo.random.{ SeedRandom, SeedRandomError }
 import zio.ZIO._
-import zio.{ Has, Ref, ZIO, ZLayer }
+import zio.{ Has, ZIO, ZLayer }
 
 package object markovNamegen {
   type StringGenerator = Has[StringGenerator.Service]
@@ -30,7 +30,7 @@ package object markovNamegen {
         perStringOptions: List[SingleGenerationOption]
       ): ZIO[Any, SeedRandomError, List[String]]
 
-      def train: ZIO[Any, Nothing, Unit]
+      def train: ZIO[Any, Nothing, Option[List[Map[String, RandomVIO[Nothing, Option[String]]]]]]
     }
 
     case class StringGeneratorLiveConfig(smoothing: SmoothF[Any, String], order: Int, data: Data) extends Config
@@ -67,7 +67,7 @@ package object markovNamegen {
 
           } yield aux).provide(random)
 
-        override def train: ZIO[Any, Nothing, Unit] =
+        override def train: ZIO[Any, Nothing, Option[List[Map[String, RandomVIO[Nothing, Option[String]]]]]] =
           g.trainAll
       }
     }
