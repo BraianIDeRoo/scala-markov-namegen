@@ -38,7 +38,7 @@ val zioVersion = "1.0.0-RC19-2"
 val markovNamegen = crossProject(JSPlatform, JVMPlatform)
   .in(file("."))
   .settings(
-    name := "markovNameger",
+    name := "markovNamegen",
     version := "0.5.1",
     libraryDependencies ++= Seq(
       "dev.zio"                 %%% "zio"          % zioVersion,
