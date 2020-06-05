@@ -44,7 +44,7 @@ val markovNamegen = crossProject(JSPlatform, JVMPlatform)
       "dev.zio"                 %%% "zio"          % zioVersion,
       "dev.zio"                 %%% "zio-test"     % zioVersion % "test",
       "dev.zio"                 %%% "zio-test-sbt" % zioVersion % "test",
-      "com.github.BraianIDeRoo" %%% "random-util"  % "0.5.0"
+      "com.github.BraianIDeRoo" %%% "random-util"  % "0.5.2"
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     publishTo := Some(
