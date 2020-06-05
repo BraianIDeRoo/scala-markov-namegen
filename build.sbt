@@ -33,7 +33,7 @@ publishTo := Some(
     Opts.resolver.sonatypeStaging
 )
 
-val zioVersion = "1.0.0-RC19-2"
+val zioVersion = "1.0.0-RC20"
 
 val markovNamegen = crossProject(JSPlatform, JVMPlatform)
   .in(file("."))
